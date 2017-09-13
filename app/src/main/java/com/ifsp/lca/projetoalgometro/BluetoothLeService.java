@@ -150,6 +150,9 @@ public class BluetoothLeService extends Service {
                 if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0004") ){
                     broadcastUpdate(ACTION_DATA_AVAILABLE4, characteristic);
                 }
+                /*if(characteristic.getUuid() == UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb") ){
+                    broadcastUpdate(ACTION_DATA_AVAILABLE4, characteristic);
+                }*/
                 if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0005") ){
                     broadcastUpdate(ACTION_DATA_AVAILABLE5, characteristic);
                 }
@@ -179,6 +182,9 @@ public class BluetoothLeService extends Service {
             if (UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0004").equals(characteristic.getUuid())){
                 broadcastUpdate(ACTION_DATA_AVAILABLE4, characteristic);
             }
+            /*if (UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb").equals(characteristic.getUuid())){
+                broadcastUpdate(ACTION_DATA_AVAILABLE4, characteristic);
+            }*/
             if (UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0005").equals(characteristic.getUuid())){
                 broadcastUpdate(ACTION_DATA_AVAILABLE5, characteristic);
             }
@@ -264,6 +270,7 @@ public class BluetoothLeService extends Service {
         }
 
         if (UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0004").equals(characteristic.getUuid())){
+            //if (UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb").equals(characteristic.getUuid())){
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
             final int f = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT16,0);
@@ -362,9 +369,7 @@ public class BluetoothLeService extends Service {
 
     @Override
     public boolean onUnbind(Intent intent) {
-        // After using a given device, you should make sure that BluetoothGatt.close() is called
-        // such that resources are cleaned up properly.  In this particular example, close() is
-        // invoked when the UI is disconnected from the Service.
+
         close();
         return super.onUnbind(intent);
     }
@@ -471,44 +476,9 @@ public class BluetoothLeService extends Service {
      *
      * @param characteristic The characteristic to read from.
      */
-    public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-        //setCharacteristicNotification(characteristic, true);
-        if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0001") ){
-        mBluetoothGatt.readCharacteristic(characteristic);
-        }
-        if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0002") ){
-            mBluetoothGatt.readCharacteristic(characteristic);
-        }
-        if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0003") ){
-            mBluetoothGatt.readCharacteristic(characteristic);
-        }
-        if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0004") ){
-            mBluetoothGatt.readCharacteristic(characteristic);
-        }
-        if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0005") ){
-            mBluetoothGatt.readCharacteristic(characteristic);
-        }
 
 
 
-
-    }
-
-    public void readCharacteristic2(BluetoothGattCharacteristic characteristic) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
-
-
-        if(characteristic.getUuid() == UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0001") ){
-            mBluetoothGatt.readCharacteristic(characteristic);
-        }
-    }
 
     /**
      * Enables or disables notification on a give characteristic.
@@ -548,6 +518,12 @@ public class BluetoothLeService extends Service {
             descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
             mBluetoothGatt.writeDescriptor(descriptor);
         }
+        /*if (UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb").equals(characteristic.getUuid())) {
+            mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
+            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
+            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+            mBluetoothGatt.writeDescriptor(descriptor);
+        }*/
         if (UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0005").equals(characteristic.getUuid())) {
             mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
             BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
@@ -560,20 +536,7 @@ public class BluetoothLeService extends Service {
 
     }
 
-    public void setCharacteristicNotification2(BluetoothGattCharacteristic characteristic,
-                                              boolean enabled) {
-        if (mBluetoothAdapter == null || mBluetoothGatt == null) {
-            Log.w(TAG, "BluetoothAdapter not initialized");
-            return;
-        }
 
-        if (UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0001").equals(characteristic.getUuid())) {
-            mBluetoothGatt.setCharacteristicNotification(characteristic, enabled);
-            BluetoothGattDescriptor descriptor = characteristic.getDescriptor(UUID.fromString(SampleGattAttributes.CLIENT_CHARACTERISTIC_CONFIG));
-            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-            mBluetoothGatt.writeDescriptor(descriptor);
-        }
-    }
 
     /**
      * Retrieves a list of supported GATT services on the connected device. This should be
@@ -675,6 +638,7 @@ public class BluetoothLeService extends Service {
         }
         /*check if the service is available on the device*/
         BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0000"));
+        //BluetoothGattService mCustomService = mBluetoothGatt.getService(UUID.fromString("0000180F-0000-1000-8000-00805f9b34fb"));
 
 
         if(mCustomService == null){
@@ -684,6 +648,8 @@ public class BluetoothLeService extends Service {
         /*get the read characteristic from the service*/
 
         BluetoothGattCharacteristic mReadCharacteristic = mCustomService.getCharacteristic(UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dc0004"));
+        //BluetoothGattCharacteristic mReadCharacteristic = mCustomService.getCharacteristic(UUID.fromString("00002a19-0000-1000-8000-00805f9b34fb"));
+
 
 
         setCharacteristicNotification(mReadCharacteristic, true);

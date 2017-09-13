@@ -18,22 +18,34 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.os.Bundle;
-import android.os.CountDownTimer;
 import android.os.IBinder;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.ExpandableListView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.RelativeLayout;
 import android.widget.SimpleExpandableListAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * For a given BLE device, this Activity provides the user interface to connect, display data,
@@ -47,10 +59,26 @@ public class DeviceControlActivity extends Activity {
     public static final String EXTRAS_DEVICE_NAME = "DEVICE_NAME";
     public static final String EXTRAS_DEVICE_ADDRESS = "DEVICE_ADDRESS";
 
-    private TextView txtValor, txtValor2, txtValor3, txtBat, txtTemp;
-    private float n,o,p;
+    private String tst, tstValue;
 
-    private ImageView imGauge, imGauge2, imGauge3;
+    private TextView txtValor, txtValor2, txtValor3, txtBat, txtTemp, txtVb, txtSP1;
+    private float n,o,p;
+    private int count = 0, count2 = 0, count3 = 0;
+    private float[] Sensor1 = new float[3];
+    private float[] Sensor2 = new float[3];
+    private float[] Sensor3 = new float[3];
+    private String[] horaSensor1 = new String[3];
+    private String[] horaSensor2 = new String[3];
+    private String[] horaSensor3 = new String[3];
+
+    private ImageView imGauge, imGauge2, imGauge3, imageViewBatt;
+
+    private EditText EditNome;
+
+    private boolean para1 = true, para2 = true, para3 = true;
+
+    FirebaseDatabase database = FirebaseDatabase.getInstance();
+    DatabaseReference myRef;
 
     private String mDeviceName;
     private String mDeviceAddress;
@@ -79,6 +107,9 @@ public class DeviceControlActivity extends Activity {
             }
             // Automatically connects to the device upon successful start-up initialization.
             mBluetoothLeService.connect(mDeviceAddress);
+           /* if(mBluetoothLeService != null){
+            mBluetoothLeService.readCustomCharacteristicBattery();
+            }*/
 
         }
 
@@ -98,6 +129,7 @@ public class DeviceControlActivity extends Activity {
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
+            DateFormat hour = new SimpleDateFormat("HH:mm:ss");
 
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
@@ -105,6 +137,7 @@ public class DeviceControlActivity extends Activity {
                 //ConnEquip.setText(mDeviceName);
                 updateConnectionState(R.string.connected);
                 invalidateOptionsMenu();
+               //mBluetoothLeService.readCustomCharacteristicBattery();
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
                 //ConnEquip.setTextColor(Color.parseColor("#FF0000"));
@@ -115,9 +148,54 @@ public class DeviceControlActivity extends Activity {
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 // Show all the supported services and characteristics on the user interface.
                 //displayGattServices(mBluetoothLeService.getSupportedGattServices());
-            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)){
+            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action) && para1){
+                para1 = false;
                 txtValor.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                txtSP1.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                 n = intent.getFloatExtra("val",0);
+                count++;
+                Sensor1[count-1] = n;
+
+                horaSensor1[count-1] = hour.format(Calendar.getInstance().getTime());
+                if(count == 3){
+                    count = 0;
+                    tst = "Teste1";
+                    Query l = database.getReference().child(String.valueOf(EditNome.getText())).child("Sensor1").orderByKey().limitToLast(1);
+
+                    l.addListenerForSingleValueEvent(new ValueEventListener() {
+                                                    @Override
+                                                    public void onDataChange(DataSnapshot dataSnapshot) {
+                                                        // This method is called once with the initial value and again
+                                                        // whenever data at this location is updated.
+                                                        tstValue = dataSnapshot.getKey();
+                                                        Log.d(TAG, "VALUE ISSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS: " + tstValue);
+                                                    }
+                        @Override
+                        public void onCancelled(DatabaseError error) {
+                            // Failed to read value
+                            Log.w(TAG, "Failed to read value.", error.toException());
+                        }
+                    });
+
+                    /*if(!tstValue.equals(null)){
+                        tst = String.valueOf(Integer.parseInt(tst.substring(6)) + 1);
+                    }*/
+                    DateFormat date = new SimpleDateFormat("dd-MM-yyyy");
+                    String data = date.format(Calendar.getInstance().getTime());
+
+
+
+                    Toast.makeText(getApplication(), "Enviando dados Sensor1", Toast.LENGTH_LONG).show();
+                    myRef = database.getReference().child(String.valueOf(EditNome.getText())).child("Sensor1").child(tst).child(String.valueOf(data));
+                    for(int i = 0; i < 3; i++) {
+
+                        String hora = horaSensor1[i];
+                        myRef.child(hora).setValue("Medida " + (i+1) + ": " + String.valueOf(Sensor1[i]));
+
+                    }
+
+                }
+
 
 
                 runOnUiThread(new Runnable() {
@@ -131,7 +209,8 @@ public class DeviceControlActivity extends Activity {
                     }
                 });
 
-            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE2.equals(action)){
+            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE2.equals(action) && para2){
+                para2 = false;
                 txtValor2.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA2));
                 o = intent.getFloatExtra("val2",0);
                 runOnUiThread(new Runnable() {
@@ -144,7 +223,8 @@ public class DeviceControlActivity extends Activity {
                         circularImageBar(imGauge2, (o*100)/t);
                     }
                 });
-            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE3.equals(action)){
+            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE3.equals(action) && para3){
+                para3 = false;
                 txtValor3.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA3));
                 p = intent.getFloatExtra("val3",0);
                 runOnUiThread(new Runnable() {
@@ -159,6 +239,23 @@ public class DeviceControlActivity extends Activity {
                 });
             } else if(BluetoothLeService.ACTION_DATA_AVAILABLE4.equals(action)){
                 txtBat.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA4));
+                txtVb.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA4));
+
+
+                String bat = intent.getStringExtra(BluetoothLeService.EXTRA_DATA4);
+
+                int value = Integer.parseInt(bat.replace("%\n",""));
+
+                if(value > 50){
+                    imageViewBatt.setImageResource(R.drawable.batteryalgometrofull);
+
+                }
+                if(value <50 && value > 25){
+                    imageViewBatt.setImageResource(R.drawable.batteryalgometromedium);
+                }
+                if(value < 25){
+                    imageViewBatt.setImageResource(R.drawable.batteryalgometrolow);
+                }
             } else if(BluetoothLeService.ACTION_DATA_AVAILABLE5.equals(action)){
                 txtTemp.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA5));
             }
@@ -260,6 +357,8 @@ public class DeviceControlActivity extends Activity {
         //setContentView(R.layout.button_control);
         setContentView(R.layout.activity_device_control);
 
+        Toast.makeText(getApplication(), "OI", Toast.LENGTH_SHORT).show();
+
         final Intent intent = getIntent();
         mDeviceName = intent.getStringExtra(EXTRAS_DEVICE_NAME);
         mDeviceAddress = intent.getStringExtra(EXTRAS_DEVICE_ADDRESS);
@@ -278,10 +377,22 @@ public class DeviceControlActivity extends Activity {
         imGauge2 = (ImageView) findViewById(R.id.imGauge2);
         imGauge3 = (ImageView) findViewById(R.id.imGauge3);
 
+        imageViewBatt = (ImageView) findViewById(R.id.imageViewBatt);
+
+        txtVb = (TextView) findViewById(R.id.txtVb);
+
+        txtSP1 = (TextView) findViewById(R.id.txtSP1);
+
+        EditNome = (EditText) findViewById(R.id.EditNome);
+
+
+
         // Sets up UI references.
 
         Intent gattServiceIntent = new Intent(this, BluetoothLeService.class);
         bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+
+
     }
 
 
@@ -326,14 +437,45 @@ public class DeviceControlActivity extends Activity {
     public void btnLer1(View v){
         if (mBluetoothLeService != null) {
             //mBluetoothLeService.writeCustomCharacteristic(um);
-            mBluetoothLeService.writeCustomCharacteristicSensor1(1);
-            mBluetoothLeService.readCustomCharacteristic();
+            //mBluetoothLeService.writeCustomCharacteristicSensor1(1);
+            para1 = true;
 
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristic();
+                    }
+                }
+            };
+
+            thread.start();
+
+        }
+    }
+
+    public void btnLer11 (View v){
+        if (mBluetoothLeService != null) {
+            //mBluetoothLeService.writeCustomCharacteristic(um);
+            //mBluetoothLeService.writeCustomCharacteristicSensor1(1);
+            para1 = true;
+
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristic();
+                    }
+                }
+            };
+
+            thread.start();
 
         }
     }
     public void btnLer2(View v){
         if (mBluetoothLeService != null) {
+            para2 = true;
             //mBluetoothLeService.writeCustomCharacteristic(um);
             //mBluetoothLeService.writeCustomCharacteristicSensor2(1);
             //mBluetoothLeService.readCustomCharacteristic2();
@@ -341,20 +483,12 @@ public class DeviceControlActivity extends Activity {
             Thread thread = new Thread() {
                 @Override
                 public void run() {
-                    while(true) {
+                    while(para2) {
                         mBluetoothLeService.readCustomCharacteristic2();
                     }
                 }
             };
 
-            Thread thread2 = new Thread() {
-                @Override
-                public void run() {
-                    while(true) {
-                        mBluetoothLeService.readCustomCharacteristicBattery();
-                    }
-                }
-            };
 
             thread.start();
             //thread2.start();
@@ -364,6 +498,7 @@ public class DeviceControlActivity extends Activity {
     }
     public void btnLer3(View v){
         if (mBluetoothLeService != null) {
+            para3 = true;
             //mBluetoothLeService.writeCustomCharacteristic(um);
             //mBluetoothLeService.writeCustomCharacteristicSensor3(1);
             //mBluetoothLeService.readCustomCharacteristicTemperature();
@@ -371,7 +506,7 @@ public class DeviceControlActivity extends Activity {
             Thread thread = new Thread() {
                 @Override
                 public void run() {
-                    while(true) {
+                    while(para3) {
                         mBluetoothLeService.readCustomCharacteristic3();
                     }
                 }
@@ -423,6 +558,9 @@ public class DeviceControlActivity extends Activity {
         if (mConnected) {
             menu.findItem(R.id.menu_connect).setVisible(false);
             menu.findItem(R.id.menu_disconnect).setVisible(true);
+
+                //mBluetoothLeService.readCustomCharacteristicBattery();
+
         } else {
             menu.findItem(R.id.menu_connect).setVisible(true);
             menu.findItem(R.id.menu_disconnect).setVisible(false);
