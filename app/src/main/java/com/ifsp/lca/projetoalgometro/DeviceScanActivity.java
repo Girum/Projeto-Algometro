@@ -1,3 +1,12 @@
+/*
+* Aplicativo feito para integração com módulo BLE pertencente ao LCA - IFSP (desenvolvido por Carlos Eduardo Palmieri Teixeira).
+*
+* Aplicativo desenvolvido por Giovanni Antunes Bonin
+*
+* 2017
+*
+* */
+
 package com.ifsp.lca.projetoalgometro;
 
 
@@ -142,6 +151,8 @@ public class DeviceScanActivity extends ListActivity {
         final BluetoothDevice device = mLeDeviceListAdapter.getDevice(position);
         if (device == null) return;
         final Intent intent = new Intent(this, DeviceControlActivity.class);
+        //final Intent intent = new Intent(this, MedidaPesoActivity.class);
+
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_NAME, device.getName());
         intent.putExtra(DeviceControlActivity.EXTRAS_DEVICE_ADDRESS, device.getAddress());
         if (mScanning) {

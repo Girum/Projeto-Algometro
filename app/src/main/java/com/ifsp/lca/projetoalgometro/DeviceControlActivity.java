@@ -1,10 +1,18 @@
-
+/*
+* Aplicativo feito para integração com módulo BLE pertencente ao LCA - IFSP (desenvolvido por Carlos Eduardo Palmieri Teixeira).
+*
+* Aplicativo desenvolvido por Giovanni Antunes Bonin
+*
+* 2017
+*
+* */
 
 package com.ifsp.lca.projetoalgometro;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -46,13 +54,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
-/**
- * For a given BLE device, this Activity provides the user interface to connect, display data,
- * and display GATT services and characteristics supported by the device.  The Activity
- * communicates with {@code BluetoothLeService}, which in turn interacts with the
- * Bluetooth LE API.
- */
+
 public class DeviceControlActivity extends Activity {
     private final static String TAG = DeviceControlActivity.class.getSimpleName();
 
@@ -61,7 +65,7 @@ public class DeviceControlActivity extends Activity {
 
     private String tst, tstValue;
 
-    private TextView txtValor, txtValor2, txtValor3, txtBat, txtTemp, txtVb, txtSP1;
+    private TextView txtBat, txtTemp, txtVb, txtSP1, txtSP2, txtSP3, txtStatus, txtRef;
     private float n,o,p;
     private int count = 0, count2 = 0, count3 = 0;
     private float[] Sensor1 = new float[3];
@@ -71,7 +75,11 @@ public class DeviceControlActivity extends Activity {
     private String[] horaSensor2 = new String[3];
     private String[] horaSensor3 = new String[3];
 
+    private boolean state1 = false;
+
     private ImageView imGauge, imGauge2, imGauge3, imageViewBatt;
+
+    private float tref = (float) 1.0;
 
     private EditText EditNome;
 
@@ -133,27 +141,49 @@ public class DeviceControlActivity extends Activity {
 
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
                 mConnected = true;
+                txtStatus.setTextColor(Color.GREEN);
+                txtStatus.setText("Conectado");
+
+                if (mBluetoothLeService != null) {
+                    //mBluetoothLeService.writeCustomCharacteristic(um);
+                    //mBluetoothLeService.writeCustomCharacteristicSensor1(1);
+                    para1 = true;
+
+                    Thread thread = new Thread() {
+                        @Override
+                        public void run() {
+
+                            mBluetoothLeService.readCustomCharacteristic();
+
+                        }
+                    };
+
+                    thread.start();
+
+                }
+
                 //ConnEquip.setTextColor(Color.parseColor("#00FF00"));
                 //ConnEquip.setText(mDeviceName);
                 updateConnectionState(R.string.connected);
-                invalidateOptionsMenu();
+                //invalidateOptionsMenu();
                //mBluetoothLeService.readCustomCharacteristicBattery();
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {
                 mConnected = false;
+                txtStatus.setTextColor(Color.RED);
+                txtStatus.setText("Desconectado");
                 //ConnEquip.setTextColor(Color.parseColor("#FF0000"));
                 //ConnEquip.setText("Nenhum");
                 updateConnectionState(R.string.disconnected);
-                invalidateOptionsMenu();
+                //invalidateOptionsMenu();
                 clearUI();
             } else if (BluetoothLeService.ACTION_GATT_SERVICES_DISCOVERED.equals(action)) {
                 // Show all the supported services and characteristics on the user interface.
                 //displayGattServices(mBluetoothLeService.getSupportedGattServices());
             } else if(BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action) && para1){
-                para1 = false;
-                txtValor.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
+                //para1 = false;
                 txtSP1.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
                 n = intent.getFloatExtra("val",0);
-                count++;
+                /*count++;
                 Sensor1[count-1] = n;
 
                 horaSensor1[count-1] = hour.format(Calendar.getInstance().getTime());
@@ -177,9 +207,7 @@ public class DeviceControlActivity extends Activity {
                         }
                     });
 
-                    /*if(!tstValue.equals(null)){
-                        tst = String.valueOf(Integer.parseInt(tst.substring(6)) + 1);
-                    }*/
+
                     DateFormat date = new SimpleDateFormat("dd-MM-yyyy");
                     String data = date.format(Calendar.getInstance().getTime());
 
@@ -194,9 +222,7 @@ public class DeviceControlActivity extends Activity {
 
                     }
 
-                }
-
-
+                }*/
 
                 runOnUiThread(new Runnable() {
                     @Override
@@ -205,13 +231,13 @@ public class DeviceControlActivity extends Activity {
                         float dd = n;
 
                         //circularImageBar(imGauge,((t-dd)*(100/t)));
-                        circularImageBar(imGauge, (n*100)/t);
+                        circularImageBar(imGauge, (n*100)/tref);
                     }
                 });
 
             } else if(BluetoothLeService.ACTION_DATA_AVAILABLE2.equals(action) && para2){
-                para2 = false;
-                txtValor2.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA2));
+                //para2 = false;
+                txtSP2.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA2));
                 o = intent.getFloatExtra("val2",0);
                 runOnUiThread(new Runnable() {
                     @Override
@@ -220,12 +246,12 @@ public class DeviceControlActivity extends Activity {
 
 
                         //circularImageBar(imGauge,((t-dd)*(100/t)));
-                        circularImageBar(imGauge2, (o*100)/t);
+                        circularImageBar2(imGauge2, (o*100)/tref);
                     }
                 });
             } else if(BluetoothLeService.ACTION_DATA_AVAILABLE3.equals(action) && para3){
-                para3 = false;
-                txtValor3.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA3));
+                //para3 = false;
+                txtSP3.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA3));
                 p = intent.getFloatExtra("val3",0);
                 runOnUiThread(new Runnable() {
                     @Override
@@ -234,15 +260,29 @@ public class DeviceControlActivity extends Activity {
 
 
                         //circularImageBar(imGauge,((t-dd)*(100/t)));
-                        circularImageBar3(imGauge3, (p*100)/t);
+                        circularImageBar3(imGauge3, (p*100)/tref);
                     }
                 });
             } else if(BluetoothLeService.ACTION_DATA_AVAILABLE4.equals(action)){
-                txtBat.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA4));
-                txtVb.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA4));
+                txtRef.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA4));
+
+                //float value = Float.parseFloat(intent.getStringExtra(BluetoothLeService.EXTRA_DATA4));
+                String v = intent.getStringExtra(BluetoothLeService.EXTRA_DATA4);
+                float valueFinal = Float.parseFloat(v.replace(" V\n", ""));
+                tref = valueFinal;
+
+                if(valueFinal <2.5){
+                    txtRef.setTextColor(Color.RED);
+                }else{
+                    txtRef.setTextColor(Color.GREEN);
+                }
+
+            }else if(BluetoothLeService.ACTION_DATA_AVAILABLE5.equals(action)){
+                //txtBat.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA4));
+                txtVb.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA5));
 
 
-                String bat = intent.getStringExtra(BluetoothLeService.EXTRA_DATA4);
+                String bat = intent.getStringExtra(BluetoothLeService.EXTRA_DATA5);
 
                 int value = Integer.parseInt(bat.replace("%\n",""));
 
@@ -256,28 +296,12 @@ public class DeviceControlActivity extends Activity {
                 if(value < 25){
                     imageViewBatt.setImageResource(R.drawable.batteryalgometrolow);
                 }
-            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE5.equals(action)){
-                txtTemp.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA5));
+            } else if(BluetoothLeService.ACTION_DATA_AVAILABLE6.equals(action)){
+                //txtTemp.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA5));
             }
 
 
-            /*else if (BluetoothLeService.ACTION_DATA_AVAILABLE.equals(action)) {
-                //check = true;
-                //displayData(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
-                //displayDataCheck(intent.getStringExtra(BluetoothLeService.extra));
-                txtValor.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA));
-                mBluetoothLeService.readCustomCharacteristic2();
-                if(BluetoothLeService.ACTION_DATA_AVAILABLE2.equals(action)){
-                    txtValor2.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA2));
-                    mBluetoothLeService.readCustomCharacteristic3();
 
-                    if(BluetoothLeService.ACTION_DATA_AVAILABLE3.equals(action)){
-                        txtValor3.setText(intent.getStringExtra(BluetoothLeService.EXTRA_DATA3));
-
-                    }
-                }
-
-            }*/
         }
     };
 
@@ -301,7 +325,38 @@ public class DeviceControlActivity extends Activity {
         paint.setStrokeWidth(35);
         paint.setStyle(Paint.Style.STROKE);
         canvas.drawCircle(250, 250, 220, paint);
-        paint.setColor(Color.parseColor("#0000FF"));
+        paint.setColor(Color.parseColor("#FF0000"));
+        paint.setStrokeWidth(35);
+        paint.setStyle(Paint.Style.FILL);
+        final RectF oval = new RectF();
+        paint.setStyle(Paint.Style.STROKE);
+        oval.set(31,31,470,470);// left top right bottom
+        canvas.drawArc(oval, 270, ((-i*360)/100), false, paint);
+        paint.setStrokeWidth(0);
+        paint.setStyle(Paint.Style.FILL);
+        paint.setTextAlign(Paint.Align.CENTER);
+        paint.setColor(Color.parseColor("#0087B0"));
+        paint.setTextSize(140);
+
+
+        //canvas.drawText(/*""+"00"+":"+(int)dd1*/"  "+cc, 250, 250+(paint.getTextSize()/3), paint);
+        iv2.setImageBitmap(b);
+
+    }
+
+    private void circularImageBar2(ImageView iv2, float i) {
+
+        Bitmap b = Bitmap.createBitmap(500, 500, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(b);
+        Paint paint = new Paint();
+
+
+
+        paint.setColor(Color.parseColor("#c4c4c4"));
+        paint.setStrokeWidth(35);
+        paint.setStyle(Paint.Style.STROKE);
+        canvas.drawCircle(250, 250, 220, paint);
+        paint.setColor(Color.parseColor("#00FF00"));
         paint.setStrokeWidth(35);
         paint.setStyle(Paint.Style.FILL);
         final RectF oval = new RectF();
@@ -332,7 +387,7 @@ public class DeviceControlActivity extends Activity {
         paint.setStrokeWidth(35);
         paint.setStyle(Paint.Style.STROKE);
         canvas.drawCircle(250, 250, 220, paint);
-        paint.setColor(Color.parseColor("#FC0F02"));
+        paint.setColor(Color.parseColor("#0000FF"));
         paint.setStrokeWidth(35);
         paint.setStyle(Paint.Style.FILL);
         final RectF oval = new RectF();
@@ -366,12 +421,8 @@ public class DeviceControlActivity extends Activity {
         Toast.makeText(getApplication(), "Name: " +mDeviceName + " Address: " + mDeviceAddress, Toast.LENGTH_SHORT).show();
 
 
-        txtValor = (TextView) findViewById(R.id.txtValor);
-        txtValor2 = (TextView) findViewById(R.id.txtValor2);
-        txtValor3 = (TextView) findViewById(R.id.txtValor3);
-
-        txtBat = (TextView) findViewById(R.id.txtBat);
-        txtTemp = (TextView) findViewById(R.id.txtTemp);
+        //txtBat = (TextView) findViewById(R.id.txtBat);
+        //txtTemp = (TextView) findViewById(R.id.txtTemp);
 
         imGauge = (ImageView) findViewById(R.id.imGauge);
         imGauge2 = (ImageView) findViewById(R.id.imGauge2);
@@ -382,6 +433,13 @@ public class DeviceControlActivity extends Activity {
         txtVb = (TextView) findViewById(R.id.txtVb);
 
         txtSP1 = (TextView) findViewById(R.id.txtSP1);
+        txtSP2 = (TextView) findViewById(R.id.txtSP2);
+        txtSP3 = (TextView) findViewById(R.id.txtSP3);
+
+        txtStatus = (TextView) findViewById(R.id.txtStatus);
+
+        txtRef = (TextView) findViewById(R.id.txtRef);
+
 
         EditNome = (EditText) findViewById(R.id.EditNome);
 
@@ -443,9 +501,9 @@ public class DeviceControlActivity extends Activity {
             Thread thread = new Thread() {
                 @Override
                 public void run() {
-                    while(true) {
+
                         mBluetoothLeService.readCustomCharacteristic();
-                    }
+
                 }
             };
 
@@ -460,20 +518,47 @@ public class DeviceControlActivity extends Activity {
             //mBluetoothLeService.writeCustomCharacteristicSensor1(1);
             para1 = true;
 
+
             Thread thread = new Thread() {
                 @Override
                 public void run() {
-                    while(true) {
+                    while(para1) {
                         mBluetoothLeService.readCustomCharacteristic();
+
                     }
                 }
             };
 
             thread.start();
 
+
         }
     }
     public void btnLer2(View v){
+        if (mBluetoothLeService != null) {
+            para2 = true;
+            //mBluetoothLeService.writeCustomCharacteristic(um);
+            //mBluetoothLeService.writeCustomCharacteristicSensor2(1);
+            //mBluetoothLeService.readCustomCharacteristic2();
+            //mBluetoothLeService.readCustomCharacteristicBattery();
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(para2) {
+                        mBluetoothLeService.readCustomCharacteristic2();
+                    }
+                }
+            };
+
+
+            thread.start();
+            //thread2.start();
+
+
+        }
+    }
+
+    public void btnLer12(View v){
         if (mBluetoothLeService != null) {
             para2 = true;
             //mBluetoothLeService.writeCustomCharacteristic(um);
@@ -527,6 +612,79 @@ public class DeviceControlActivity extends Activity {
         }
     }
 
+    public void btnLer13(View v){
+        if (mBluetoothLeService != null) {
+            para3 = true;
+            //mBluetoothLeService.writeCustomCharacteristic(um);
+            //mBluetoothLeService.writeCustomCharacteristicSensor3(1);
+            //mBluetoothLeService.readCustomCharacteristicTemperature();
+            //mBluetoothLeService.readCustomCharacteristic3();
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(para3) {
+                        mBluetoothLeService.readCustomCharacteristic3();
+                    }
+                }
+            };
+
+            Thread thread2 = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristicTemperature();
+                    }
+                }
+            };
+
+            thread.start();
+            //thread2.start();
+
+        }
+    }
+
+    public void btnP1(View v){
+        if (mBluetoothLeService != null) {
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristicP1();
+                    }
+                }
+            };
+            thread.start();
+        }
+        }
+    public void btnP2(View v){
+        if (mBluetoothLeService != null) {
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristicP2();
+                    }
+                }
+            };
+
+            thread.start();
+        }
+    }
+    public void btnP3(View v){
+        if (mBluetoothLeService != null) {
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristicP3();
+                    }
+                }
+            };
+            thread.start();
+
+        }
+    }
+
 
     @Override
     protected void onResume() {
@@ -540,6 +698,58 @@ public class DeviceControlActivity extends Activity {
 
     }
 
+    public void btnTudo(View v){
+        if (mBluetoothLeService != null) {
+            Thread thread = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristic();
+                    }
+                }
+            };
+            Thread thread2 = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristic2();
+                    }
+                }
+            };
+            Thread thread3 = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristic3();
+                    }
+                }
+            };
+            Thread thread4 = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristicBattery();
+                    }
+                }
+            };
+            Thread thread5 = new Thread() {
+                @Override
+                public void run() {
+                    while(true) {
+                        mBluetoothLeService.readCustomCharacteristicRef();
+                    }
+                }
+            };
+
+            thread.start();
+            thread2.start();
+            thread3.start();
+            thread4.start();
+            thread5.start();
+
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -551,9 +761,18 @@ public class DeviceControlActivity extends Activity {
         super.onDestroy();
         unbindService(mServiceConnection);
         mBluetoothLeService = null;
+
     }
 
-    public boolean onCreateOptionsMenu(Menu menu) {
+    @Override
+    public void onBackPressed(){
+        unbindService(mServiceConnection);
+        mBluetoothLeService.disconnect();
+        mBluetoothLeService = null;
+        Intent intent = new Intent(this, DeviceScanActivity.class);
+    }
+
+    /*public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.gatt_services, menu);
         if (mConnected) {
             menu.findItem(R.id.menu_connect).setVisible(false);
@@ -582,7 +801,7 @@ public class DeviceControlActivity extends Activity {
                 return true;
         }
         return super.onOptionsItemSelected(item);
-    }
+    }*/
 
 
     private void updateConnectionState(final int resourceId) {
@@ -601,65 +820,6 @@ public class DeviceControlActivity extends Activity {
         }
     }
 
-
-
-    // Demonstrates how to iterate through the supported GATT Services/Characteristics.
-    // In this sample, we populate the data structure that is bound to the ExpandableListView
-    // on the UI.
-    private void displayGattServices(List<BluetoothGattService> gattServices) {
-        if (gattServices == null) return;
-        String uuid = null;
-        String unknownServiceString = getResources().getString(R.string.unknown_service);
-        String unknownCharaString = getResources().getString(R.string.unknown_characteristic);
-        ArrayList<HashMap<String, String>> gattServiceData = new ArrayList<HashMap<String, String>>();
-        ArrayList<ArrayList<HashMap<String, String>>> gattCharacteristicData
-                = new ArrayList<ArrayList<HashMap<String, String>>>();
-        mGattCharacteristics = new ArrayList<ArrayList<BluetoothGattCharacteristic>>();
-
-        // Loops through available GATT Services.
-        for (BluetoothGattService gattService : gattServices) {
-            HashMap<String, String> currentServiceData = new HashMap<String, String>();
-            uuid = gattService.getUuid().toString();
-            currentServiceData.put(
-                    LIST_NAME, SampleGattAttributes.lookup(uuid, unknownServiceString));
-            currentServiceData.put(LIST_UUID, uuid);
-            gattServiceData.add(currentServiceData);
-
-            ArrayList<HashMap<String, String>> gattCharacteristicGroupData =
-                    new ArrayList<HashMap<String, String>>();
-            List<BluetoothGattCharacteristic> gattCharacteristics =
-                    gattService.getCharacteristics();
-            ArrayList<BluetoothGattCharacteristic> charas =
-                    new ArrayList<BluetoothGattCharacteristic>();
-
-            // Loops through available Characteristics.
-            for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
-                charas.add(gattCharacteristic);
-                HashMap<String, String> currentCharaData = new HashMap<String, String>();
-                uuid = gattCharacteristic.getUuid().toString();
-                currentCharaData.put(
-                        LIST_NAME, SampleGattAttributes.lookup(uuid, unknownCharaString));
-                currentCharaData.put(LIST_UUID, uuid);
-                gattCharacteristicGroupData.add(currentCharaData);
-            }
-            mGattCharacteristics.add(charas);
-            gattCharacteristicData.add(gattCharacteristicGroupData);
-        }
-
-        SimpleExpandableListAdapter gattServiceAdapter = new SimpleExpandableListAdapter(
-                this,
-                gattServiceData,
-                android.R.layout.simple_expandable_list_item_2,
-                new String[]{LIST_NAME, LIST_UUID},
-                new int[]{android.R.id.text1, android.R.id.text2},
-                gattCharacteristicData,
-                android.R.layout.simple_expandable_list_item_2,
-                new String[]{LIST_NAME, LIST_UUID},
-                new int[]{android.R.id.text1, android.R.id.text2}
-        );
-        mGattServicesList.setAdapter(gattServiceAdapter);
-    }
-
     private static IntentFilter makeGattUpdateIntentFilter() {
         final IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(BluetoothLeService.ACTION_GATT_CONNECTED);
@@ -672,6 +832,8 @@ public class DeviceControlActivity extends Activity {
         intentFilter.addAction(BluetoothLeService.ACTION_DATA_AVAILABLE5);
         return intentFilter;
     }
+
+
 
 }
 

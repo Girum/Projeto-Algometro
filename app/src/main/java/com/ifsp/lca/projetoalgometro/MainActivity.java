@@ -1,3 +1,12 @@
+/*
+* Aplicativo feito para integração com módulo BLE pertencente ao LCA - IFSP (desenvolvido por Carlos Eduardo Palmieri Teixeira).
+*
+* Aplicativo desenvolvido por Giovanni Antunes Bonin
+*
+* 2017
+*
+* */
+
 package com.ifsp.lca.projetoalgometro;
 
 import android.app.Activity;
